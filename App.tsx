@@ -1,62 +1,55 @@
-import { useEffect, useState } from 'react';
-import { ActivityIndicator, FlatList, StyleSheet, Text, View } from 'react-native';
-import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
-import PlayerCard from './PlayerCard';
-import { fetchPlayerList } from './api';
+import { Ionicons } from '@expo/vector-icons';
+import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { NavigationContainer } from '@react-navigation/native';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
-export default function App() {
-  const [players, setPlayers] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+// Context Import
+import { ThemeProvider } from './ThemeContext';
 
-  useEffect(() => {
-      const loadData = async () => {
-        const data = await fetchPlayerList();
-        setPlayers(data);
-        setLoading(false);
-      };
+// Screen Imports
+import HomeScreen from './HomeScreen';
+import ProfileScreen from './ProfileScreen';
+import SettingsScreen from './SettingScreen'; // Make sure the filename perfectly matches this!
 
-      loadData();
-    }, []);
+const Tab = createBottomTabNavigator();
+const Stack = createNativeStackNavigator();
 
-      // This function tells FlatList how to render each item
-    const renderItem = ({ item }: { item: any }) => (
-      <PlayerCard playerData={item} />
-    );
-
+// This stack handles the transition from list -> profile screen
+function HomeStack() {
   return (
-    <SafeAreaProvider>
-      <SafeAreaView style={styles.container}>
-        {loading ? (
-          <View style={styles.center}>
-            <ActivityIndicator size="large" color="#0000ff" />
-          </View>
-        ) : players.length > 0 ? (
-          <FlatList
-            data={players}
-            renderItem={renderItem}
-            // FlatList needs a unique string key for every item
-            keyExtractor={(item) => item.PLAYER_ID.toString()} 
-            // Adds a bit of padding to the bottom of the list so the last card isn't cut off
-            contentContainerStyle={{ paddingBottom: 20 }} 
-          />
-        ) : (
-          <View style={styles.center}>
-            <Text>No players found.</Text>
-          </View>
-        )}
-      </SafeAreaView>
-    </SafeAreaProvider>
+    <Stack.Navigator>
+      <Stack.Screen name="Home" component={HomeScreen} options={{ title: 'Current Squad'}} />
+      <Stack.Screen name="Profile" component={ProfileScreen} options={{ title: 'Player Profile'}} />
+    </Stack.Navigator>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f5f5f5',
-    },
-  center: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-});
+// ONLY ONE App Function!
+export default function App() {
+  return (
+    // ThemeProvider wraps everything
+    <ThemeProvider>
+      <NavigationContainer>
+        <Tab.Navigator
+          screenOptions={({ route }) => ({
+            tabBarIcon: ({ color, size }) => {
+              let iconName: any = 'football'; // Default icon
+              if (route.name === 'Squad') iconName = 'people';
+              if (route.name === 'Settings') iconName = 'settings';
+              return <Ionicons name={iconName} size={size} color={color} />;
+            },
+            tabBarActiveTintColor: 'red',
+            tabBarInactiveTintColor: 'gray',
+          })}
+        >
+          {/* The first tab uses our Stack */}
+          <Tab.Screen name="Squad" component={HomeStack} options={{ headerShown: false }} />
+          
+          {/* The Settings Tab */}
+          <Tab.Screen name="Settings" component={SettingsScreen} />
+
+        </Tab.Navigator>
+      </NavigationContainer>
+    </ThemeProvider>
+  );
+}

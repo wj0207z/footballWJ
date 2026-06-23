@@ -1,5 +1,6 @@
+import { useNavigation } from '@react-navigation/native';
 import React from 'react';
-import { Image, StyleSheet, Text, View } from 'react-native';
+import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 type PlayerProps = {
     playerData: {
@@ -12,15 +13,23 @@ type PlayerProps = {
     };
 
     const PlayerCard: React.FC<PlayerProps> = ({ playerData }) => {
-    return (
-        <View style={styles.cardContainer}>
-        <Image source={{ uri: playerData.IMAGE_URL }} style={styles.headshot} />
-        <View style={styles.infoContainer}>
-            <Text style={styles.nameText}>{playerData.FULL_NAME}</Text>
-            <Text style={styles.detailText}>Position: {playerData.POSITION}</Text>
-            <Text style={styles.detailText}>Nationality: {playerData.NATIONALITY}</Text>
-        </View>
-        </View>
+        //grab the navigation prop from the context so we can navigate to the profile screen when the card is tapped
+        const navigation = useNavigation<any>();
+    
+        return (
+            <TouchableOpacity
+                style={styles.cardContainer}
+                // When the card is pressed, navigate to the Profile screen and pass the player data as a parameter
+                onPress={() => navigation.navigate('Profile', { player: playerData })}
+                activeOpacity ={0.7} // Slightly dim the card when pressed for better UX
+            >
+                <Image source={{ uri: playerData.IMAGE_URL }} style={styles.headshot} />
+                <View style={styles.infoContainer}>
+                    <Text style={styles.nameText}>{playerData.FULL_NAME}</Text>
+                    <Text style={styles.detailText}>Position: {playerData.POSITION}</Text>
+                    <Text style={styles.detailText}>Nationality: {playerData.NATIONALITY}</Text>
+                </View>
+            </TouchableOpacity>
     );
     };
 
