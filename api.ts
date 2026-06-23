@@ -1,47 +1,58 @@
-// Securely loaded from .env
-const API_TOKEN = process.env.EXPO_PUBLIC_APIFOOTBALL_TOKEN; 
-
-// The new API-Football base URL
-const BASE_URL = 'https://v3.football.api-sports.io';
+const API_KEY = process.env.EXPO_PUBLIC_SPORTSDB_API_KEY || '3';
+const BASE_URL = 'https://www.thesportsdb.com/api/v1/json';
 
 export const fetchPlayerList = async () => {
-    if (!API_TOKEN) {
-        console.error("API Token is missing. Check your .env file.");
-        return [];
-    }
-
     try {
-        // Fetching the current squad for Team 33.
-        // The token is passed securely in the headers, not the URL.
-        const response = await fetch(`${BASE_URL}/players/squads?team=33`, {
-        method: 'GET',
-        headers: {
-            'x-apisports-key': API_TOKEN
-        }
-        });
-        
-        const data = await response.json();
-        
-        // Safety check matching API-Football's payload structure
-        if (!data || !data.response || !Array.isArray(data.response) || data.response.length === 0) {
-        console.error("API Error or no data returned:", data.errors || "Unknown error");
-        return [];
-        }
-        
-        // API-Football nests the entire squad array inside the first response object
-        const squad = data.response[0].players;
+        const MAIN_TEAM_ID = '133612';
+        const U21_TEAM_ID = '140199';
+        const YOUTH_TEAM_ID = '147970'; // Example youth team ID, replace with actual if available
 
-        return squad.map((player: any) => ({
-        PLAYER_ID: player.id,
-        FULL_NAME: player.name || 'Unknown',
-        POSITION: player.position || 'Unknown',
-        IMAGE_URL: player.photo || '',
-        // The squads endpoint rarely returns nationality directly, but we map it just in case
-        NATIONALITY: player.nationality || 'N/A', 
-        }));
+        const [mainResponse, u21Response, youthResponse] = await Promise.all([
+            fetch(`${BASE_URL}/${API_KEY}/lookup_all_players.php?id=${MAIN_TEAM_ID}`),
+            fetch(`${BASE_URL}/${API_KEY}/lookup_all_players.php?id=${U21_TEAM_ID}`),
+            fetch(`${BASE_URL}/${API_KEY}/lookup_all_players.php?id=${YOUTH_TEAM_ID}`)
+        ]);
+
+        const mainData = await mainResponse.json();
+        const u21Data = await u21Response.json();
+        const youthData = await youthResponse.json(); 
+        // Format helper function to keep code clean
+        const formatPlayers = (playersArray: any[]) => {
+            if (!playersArray) return [];
+
+            return playersArray
+                .filter((player: any) => {
+                    const position = player.strPosition ? player.strPosition.toLowerCase() : '';
+                    return !position.includes('assistant coach'); // Exclude assistant coaches
+                })
+                .map((player: any) => ({
+                    PLAYER_ID: player.idPlayer,
+                    FULL_NAME: player.strPlayer || 'Unknown',
+                    POSITION: player.strPosition || 'Unknown',
+                    IMAGE_URL: player.strCutout || player.strThumb || '',
+                    NATIONALITY: player.strNationality || 'N/A',
+            }));
+        };
+
+        // THIS is the exact structure a SectionList requires:
+        // An array of objects, where each object has a "title" and a "data" array.
+        return [
+        {
+            title: 'First Team',
+            data: formatPlayers(mainData?.player)
+        },
+        {
+            title: 'Under-21s',
+            data: formatPlayers(u21Data?.player)
+        },
+        {
+            title: 'Youth Team',
+            data: formatPlayers(youthData?.player)
+        }
+        ];
 
     } catch (error) {
-        console.error("Network error fetching player data:", error);
+        console.error("Network error fetching combined player data:", error);
         return [];
     }
 };
