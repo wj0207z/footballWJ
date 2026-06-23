@@ -1,20 +1,39 @@
 import { Ionicons } from '@expo/vector-icons';
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { createMaterialTopTabNavigator } from '@react-navigation/material-top-tabs';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { useEffect, useRef } from 'react';
+import { Animated } from 'react-native';
+import { SafeAreaProvider } from 'react-native-safe-area-context'; // The new notch protection engine!
 
-// Context Import
-import { ThemeProvider } from './ThemeContext';
-
-// Screen Imports
 import HomeScreen from './HomeScreen';
 import ProfileScreen from './ProfileScreen';
-import SettingsScreen from './SettingScreen'; // Make sure the filename perfectly matches this!
+import SettingScreen from './SettingScreen';
+import { ThemeProvider } from './ThemeContext';
 
-const Tab = createBottomTabNavigator();
+const Tab = createMaterialTopTabNavigator();
 const Stack = createNativeStackNavigator();
 
-// This stack handles the transition from list -> profile screen
+// The custom animated icon component for your tabs
+const TabIcon = ({ name, focused, color, size }: any) => {
+  const scaleValue = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    Animated.spring(scaleValue, {
+      toValue: focused ? 1.2 : 1,
+      friction: 4,
+      useNativeDriver: true,
+    }).start();
+  }, [focused]);
+
+  return (
+    <Animated.View style={{ transform: [{ scale: scaleValue }] }}>
+      <Ionicons name={name} size={size} color={color} />
+    </Animated.View>
+  );
+};
+
+// The stack holding your squad list and individual player profiles
 function HomeStack() {
   return (
     <Stack.Navigator>
@@ -24,32 +43,47 @@ function HomeStack() {
   );
 }
 
-// ONLY ONE App Function!
+// The main application wrapper
 export default function App() {
   return (
-    // ThemeProvider wraps everything
-    <ThemeProvider>
-      <NavigationContainer>
-        <Tab.Navigator
-          screenOptions={({ route }) => ({
-            tabBarIcon: ({ color, size }) => {
-              let iconName: any = 'football'; // Default icon
-              if (route.name === 'Squad') iconName = 'people';
-              if (route.name === 'Settings') iconName = 'settings';
-              return <Ionicons name={iconName} size={size} color={color} />;
-            },
-            tabBarActiveTintColor: 'red',
-            tabBarInactiveTintColor: 'gray',
-          })}
-        >
-          {/* The first tab uses our Stack */}
-          <Tab.Screen name="Squad" component={HomeStack} options={{ headerShown: false }} />
-          
-          {/* The Settings Tab */}
-          <Tab.Screen name="Settings" component={SettingsScreen} />
-
-        </Tab.Navigator>
-      </NavigationContainer>
-    </ThemeProvider>
+    // SafeAreaProvider wraps EVERYTHING to ensure notch calculations work app-wide
+    <SafeAreaProvider>
+      <ThemeProvider>
+        <NavigationContainer>
+          <Tab.Navigator
+            tabBarPosition="bottom" // Forces the material tabs to act like bottom tabs
+            screenOptions={({ route }) => ({
+              swipeEnabled: true, // Enables the buttery smooth screen swiping
+              tabBarIcon: ({ focused, color }) => {
+                let iconName: any = 'football';
+                
+                // Swapping between filled and outlined icons for that native feel
+                if (route.name === 'Squad') {
+                  iconName = focused ? 'people' : 'people-outline';
+                } else if (route.name === 'Settings') {
+                  iconName = focused ? 'settings' : 'settings-outline';
+                }
+                
+                return <TabIcon name={iconName} focused={focused} color={color} size={24} />;
+              },
+              tabBarActiveTintColor: '#D50032', // Manchester United Red
+              tabBarInactiveTintColor: 'gray',
+              tabBarIndicatorStyle: {
+                backgroundColor: '#D50032',
+                height: 3,
+              },
+              tabBarStyle: {
+                paddingBottom: 5,
+                paddingTop: 5,
+              },
+              tabBarShowIcon: true,
+            })}
+          >
+            <Tab.Screen name="Squad" component={HomeStack} />
+            <Tab.Screen name="Settings" component={SettingScreen} />
+          </Tab.Navigator>
+        </NavigationContainer>
+      </ThemeProvider>
+    </SafeAreaProvider>
   );
 }

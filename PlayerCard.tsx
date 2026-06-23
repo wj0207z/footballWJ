@@ -1,10 +1,12 @@
+import { Ionicons } from '@expo/vector-icons'; // 1. Import the Icon library
 import { useNavigation } from '@react-navigation/native';
-import React from 'react';
+import { useContext } from 'react';
 import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ThemeContext } from './ThemeContext';
 
 type PlayerProps = {
     playerData: {
-        PLAYER_ID: number;
+        PLAYER_ID: string;
         FULL_NAME: string;
         POSITION: string;
         IMAGE_URL: string;
@@ -12,30 +14,46 @@ type PlayerProps = {
     };
     };
 
-    const PlayerCard: React.FC<PlayerProps> = ({ playerData }) => {
-        //grab the navigation prop from the context so we can navigate to the profile screen when the card is tapped
-        const navigation = useNavigation<any>();
-    
-        return (
-            <TouchableOpacity
-                style={styles.cardContainer}
-                // When the card is pressed, navigate to the Profile screen and pass the player data as a parameter
-                onPress={() => navigation.navigate('Profile', { player: playerData })}
-                activeOpacity ={0.7} // Slightly dim the card when pressed for better UX
-            >
-                <Image source={{ uri: playerData.IMAGE_URL }} style={styles.headshot} />
-                <View style={styles.infoContainer}>
-                    <Text style={styles.nameText}>{playerData.FULL_NAME}</Text>
-                    <Text style={styles.detailText}>Position: {playerData.POSITION}</Text>
-                    <Text style={styles.detailText}>Nationality: {playerData.NATIONALITY}</Text>
-                </View>
-            </TouchableOpacity>
+    export default function PlayerCard({ playerData }: PlayerProps) {
+    const navigation = useNavigation<any>();
+    const { theme } = useContext(ThemeContext);
+
+    // 2. The Logic: Is it a real photo, or is it empty/our old placeholder?
+    const hasRealPhoto = 
+        playerData.IMAGE_URL && 
+        playerData.IMAGE_URL.trim() !== '' && 
+        !playerData.IMAGE_URL.includes('placeholder.com');
+
+    return (
+        <TouchableOpacity 
+        style={[styles.cardContainer, { backgroundColor: theme.card }]}
+        onPress={() => navigation.navigate('Profile', { player: playerData })}
+        activeOpacity={0.7}
+        >
+        {/* 3. Conditional Rendering: Draw the image OR the icon */}
+        {hasRealPhoto ? (
+            <Image 
+            source={{ uri: playerData.IMAGE_URL }} 
+            style={styles.headshot} 
+            resizeMode="contain" 
+            />
+        ) : (
+            <View style={[styles.headshot, styles.iconFallback]}>
+            <Ionicons name="person-circle-outline" size={80} color={theme.text} />
+            </View>
+        )}
+
+        <View style={styles.infoContainer}>
+            <Text style={[styles.nameText, { color: theme.text }]}>{playerData.FULL_NAME}</Text>
+            <Text style={[styles.detailText, { color: theme.text }]}>Position: {playerData.POSITION}</Text>
+            <Text style={[styles.detailText, { color: theme.text }]}>Nationality: {playerData.NATIONALITY}</Text>
+        </View>
+        </TouchableOpacity>
     );
-    };
+    }
 
     const styles = StyleSheet.create({
     cardContainer: {
-        backgroundColor: '#ffffff',
         borderRadius: 12,
         padding: 16,
         marginVertical: 8,
@@ -51,8 +69,12 @@ type PlayerProps = {
     headshot: {
         width: 80,
         height: 80,
-        borderRadius: 40,
-        backgroundColor: '#f0f0f0',
+    },
+    // New style to perfectly center the icon in the same 80x80 box
+    iconFallback: {
+        justifyContent: 'center',
+        alignItems: 'center',
+        opacity: 0.5, // Makes the icon look slightly faded/subtle
     },
     infoContainer: {
         marginLeft: 16,
@@ -61,14 +83,10 @@ type PlayerProps = {
     nameText: {
         fontSize: 18,
         fontWeight: 'bold',
-        color: '#333',
         marginBottom: 4,
     },
     detailText: {
         fontSize: 14,
-        color: '#666',
         marginTop: 2,
     },
 });
-
-export default PlayerCard;
