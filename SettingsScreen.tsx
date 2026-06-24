@@ -1,16 +1,22 @@
-import { useContext, useState } from 'react';
-// 1. We remove SafeAreaView from the 'react-native' import
-import { StyleSheet, Switch, Text, View } from 'react-native';
-// 2. We import it from our new modern library instead!
+import React, { useContext, useState } from 'react';
+import { Alert, StyleSheet, Switch, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ThemeContext } from './ThemeContext';
+import { supabase } from './supabase';
 
-export default function SettingsScreen() {
+export default function SettingScreen() {
     const { isDarkMode, setIsDarkMode, theme } = useContext(ThemeContext);
     const [isNotificationsEnabled, setIsNotificationsEnabled] = useState(true);
 
+    const handleLogOut = async () => {
+        const { error } = await supabase.auth.signOut();
+        if (error) {
+        Alert.alert("Error logging out", error.message);
+        }
+        // App.tsx will automatically detect the sign out and throw the user back to the Login Screen!
+    };
+
     return (
-        // 2. Change the outermost <View> to <SafeAreaView>
         <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
         
         <Text style={[styles.header, { color: theme.text }]}>App Preferences</Text>
@@ -30,6 +36,14 @@ export default function SettingsScreen() {
             value={isNotificationsEnabled}
             />
         </View>
+
+        <TouchableOpacity 
+            style={styles.logoutButton} 
+            onPress={handleLogOut}
+            activeOpacity={0.8}
+        >
+            <Text style={styles.logoutButtonText}>Log Out</Text>
+        </TouchableOpacity>
         
         </SafeAreaView>
     );
@@ -39,5 +53,17 @@ export default function SettingsScreen() {
     container: { flex: 1, padding: 20 },
     header: { fontSize: 24, fontWeight: 'bold', marginBottom: 20 },
     row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 20, borderRadius: 10, marginBottom: 10 },
-    label: { fontSize: 18 }
+    label: { fontSize: 18 },
+    logoutButton: {
+        backgroundColor: '#ff3b30', 
+        padding: 15,
+        borderRadius: 10,
+        alignItems: 'center',
+        marginTop: 30,
+    },
+    logoutButtonText: {
+        color: 'white',
+        fontSize: 16,
+        fontWeight: 'bold',
+    }
 });

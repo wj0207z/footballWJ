@@ -1,45 +1,61 @@
-import { useContext, useEffect, useState } from 'react';
-import { ActivityIndicator, SectionList, StyleSheet, Text, TextInput, View } from 'react-native';
+import React, { useContext, useEffect, useState } from 'react';
+import {
+    ActivityIndicator,
+    SectionList,
+    StyleSheet,
+    Text,
+    TextInput,
+    View
+} from 'react-native';
 import { fetchPlayerList } from './api';
 import PlayerCard from './PlayerCard';
 import { ThemeContext } from './ThemeContext';
 
-export default function HomeScreen() {
+    export default function HomeScreen() {
     const { theme } = useContext(ThemeContext);
     
     const [originalSections, setOriginalSections] = useState<any[]>([]);
     const [filteredSections, setFilteredSections] = useState<any[]>([]);
-    
     const [searchQuery, setSearchQuery] = useState('');
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
         const loadData = async () => {
-        const data = await fetchPlayerList();
-        setOriginalSections(data);
-        setFilteredSections(data);
-        setLoading(false);
+        try {
+            setLoading(true);
+            setError(null);
+            const data = await fetchPlayerList();
+            
+            // Safety check: ensure data is an array
+            if (data && Array.isArray(data)) {
+            setOriginalSections(data);
+            setFilteredSections(data);
+            } else {
+            throw new Error("Invalid data format received from API");
+            }
+        } catch (err) {
+            console.error("HomeScreen Error:", err);
+            setError("Failed to load players. Please try again.");
+        } finally {
+            setLoading(false);
+        }
         };
         loadData();
     }, []);
 
-    // Updated Search Logic for Nested Data
     const handleSearch = (text: string) => {
         setSearchQuery(text);
-        
         if (text === '') {
         setFilteredSections(originalSections);
         return;
         }
         
         const lowerCaseSearch = text.toLowerCase();
-        
-        // Map through each section, filter the players inside,
-        // and then remove sections that end up completely empty.
         const filtered = originalSections.map(section => ({
         ...section,
         data: section.data.filter((player: any) =>
-            player.FULL_NAME.toLowerCase().includes(lowerCaseSearch)
+            player.FULL_NAME?.toLowerCase().includes(lowerCaseSearch)
         )
         })).filter(section => section.data.length > 0);
         
@@ -50,7 +66,6 @@ export default function HomeScreen() {
         <PlayerCard playerData={item} />
     );
 
-    // New function to draw the bold category headers
     const renderSectionHeader = ({ section: { title } }: any) => (
         <View style={[styles.headerContainer, { backgroundColor: theme.background }]}>
         <Text style={[styles.headerText, { color: theme.text }]}>{title}</Text>
@@ -73,17 +88,20 @@ export default function HomeScreen() {
 
         {loading ? (
             <View style={styles.center}>
-            <ActivityIndicator size="large" color="#0000ff" />
+            <ActivityIndicator size="large" color="#D50032" />
+            </View>
+        ) : error ? (
+            <View style={styles.center}>
+            <Text style={{ color: theme.text }}>{error}</Text>
             </View>
         ) : filteredSections.length > 0 ? (
-            // Swapped FlatList for SectionList!
             <SectionList
             sections={filteredSections}
             renderItem={renderItem}
             renderSectionHeader={renderSectionHeader}
-            keyExtractor={(item) => item.PLAYER_ID.toString()}
+            keyExtractor={(item) => item.PLAYER_ID?.toString() || Math.random().toString()}
             contentContainerStyle={{ paddingBottom: 20 }}
-            stickySectionHeadersEnabled={true} // Creates the nice native iOS push effect
+            stickySectionHeadersEnabled={true}
             />
         ) : (
             <View style={styles.center}>

@@ -5,7 +5,7 @@ import { ThemeContext } from './ThemeContext';
 import { fetchPlayerDetails } from './api';
 
 export default function ProfileScreen({ route }: any) {
-    const { player } = route.params; 
+    const { player } = route.params;
     const { theme } = useContext(ThemeContext);
 
     const [details, setDetails] = useState<any>(null);
@@ -22,9 +22,9 @@ export default function ProfileScreen({ route }: any) {
     }, [player.PLAYER_ID]);
 
     // 2. The Logic for the big profile header
-    const hasRealPhoto = 
-        player.IMAGE_URL && 
-        player.IMAGE_URL.trim() !== '' && 
+    const hasRealPhoto =
+        player.IMAGE_URL &&
+        player.IMAGE_URL.trim() !== '' &&
         !player.IMAGE_URL.includes('placeholder.com');
 
     return (
